@@ -3,7 +3,7 @@ import argparse
 import os
 import concurrent.futures
 
-def check_url(url):
+def check_url(url, output_file):
     try:
         http_url = "http://" + url
         https_url = "https://" + url
@@ -12,6 +12,9 @@ def check_url(url):
             response = requests.get(url)
             if 'name="csrf-token"' in response.text or 'uploadForm' in response.text:
                 print(f"[+] {url} - Found")
+                if output_file:
+                    with open(output_file, "a") as f:
+                        f.write(f"{url}\n")
                 return url
         print(f"[-] {url} - Not Found")
     except requests.exceptions.RequestException as e:
@@ -70,17 +73,17 @@ def main():
         with open(args.list, "r") as f:
             for line in f:
                 line = line.strip()
-                line_urls = []  
+                line_urls = []  # List untuk menyimpan URL dari satu baris
                 for path in paths:
                     line_urls.append(line + path)
-                urls.extend(line_urls)  
+                urls.extend(line_urls)  # Menambahkan semua URL dari satu baris ke dalam list utama
 
     print(f"\n[INF] Total URL target for scan: {len(line_urls)}")
     print("[INF] Start : ")
 
     found_urls = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
-        results = executor.map(check_url, urls)
+        results = executor.map(check_url, urls, [args.output]*len(urls))
         for result in results:
             if result:
                 found_urls.append(result)
